@@ -1,10 +1,12 @@
 API_PKG := api
-SWAGGER_FILE := swagger.yaml
+SWAGGER_FILE := schema/swagger.yaml
 GEN_DIR := api
 MODELS_FILE := $(GEN_DIR)/models.gen.go
 SERVER_FILE := $(GEN_DIR)/server.gen.go
 CLIENT_FILE := $(GEN_DIR)/client.gen.go
 SPEC_FILE := $(GEN_DIR)/spec.gen.go
+SQLC_DIR := internal/sql/queries
+SQLC_YAML := sqlc.yaml # Path to your sqlc.yaml file
 
 # Tools
 OAPI_CODEGEN := oapi-codegen
@@ -12,7 +14,7 @@ GOIMPORTS := goimports
 
 .PHONY: all generate clean fmt lint test help
 
-all: generate fmt ## Generate code and format (default target)
+all: generate sqlc fmt ## Generate code and format (default target)
 
 gen: $(MODELS_FILE) $(SERVER_FILE) $(CLIENT_FILE) $(SPEC_FILE) ## Generate all code from OpenAPI spec
 
@@ -31,6 +33,10 @@ $(CLIENT_FILE): $(SWAGGER_FILE)
 $(SPEC_FILE): $(SWAGGER_FILE)
 	@echo "Generating embedded spec..."
 	@$(OAPI_CODEGEN) -generate spec -package $(API_PKG) $< > $@
+
+sqlc:
+	@echo "Generating sqlc code..."
+	@sqlc generate
 
 fmt: ## Format generated code
 	@echo "Formatting generated files..."

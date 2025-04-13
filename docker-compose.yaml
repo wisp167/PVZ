@@ -1,0 +1,83 @@
+services:
+  pvz-service:
+      build:
+        context: .
+        target: runner
+      container_name: pvz-service
+      ports:
+        - "${PORT}:${PORT}"
+      env_file:
+        - .env
+      environment:
+        # енвы подключения к БД
+        - DATABASE_PORT=${DATABASE_PORT}
+        - DATABASE_USER=${DATABASE_USER}
+        - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+        - DATABASE_NAME=${DATABASE_NAME}
+        - DATABASE_HOST=${DATABASE_HOST}
+        # порт сервиса
+        - SERVER_PORT=8080
+        - AIR_WORKSPACE_ROOT=/app
+          # volumes:
+          # - .:/app/src   
+      volumes:
+        - .:/app
+        - /app/bin
+        - /app/tmp
+        - ./sql:/app/sql
+      depends_on:
+        db:
+            condition: service_healthy
+      networks:
+        - internal
+  
+  db:
+    image: postgres:13
+    container_name: postgres
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+    command: postgres -c "max_connections=300"
+    volumes:
+      # "./migrations/init.sql" - путь к миграциям БД
+      - ./internal/sql/schema/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "${DATABASE_PORT}:${DATABASE_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}'"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    networks:
+      - internal
+
+  test:
+    build:
+      context: .
+      target: tester
+    container_name: pvz-service-test
+    env_file:
+      - .env
+    environment:
+      - DATABASE_PORT=${DATABASE_PORT}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_NAME=${DATABASE_NAME}
+      - DATABASE_HOST=${DATABASE_HOST}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+    command: go test -v ./tests -count=1 -coverpkg=./... -coverprofile=coverage.out
+
+networks:
+  internal:
+
+volumes:
+  postgres-data:
