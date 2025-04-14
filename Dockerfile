@@ -3,11 +3,15 @@ FROM golang:1.23.4 as builder
 
 WORKDIR /app
 
+
+ENV GO111MODULE=on
+ENV GOPATH=/go
+
 # Install make and build dependencies
 RUN apt-get update && apt-get install -y make
 RUN go install github.com/deepmap/oapi-codegen/cmd/oapi-codegen@latest
 RUN go install github.com/air-verse/air@latest
-RUN go install github.com/sqlc-dev/sqlc@latest
+RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.28.0
 
 # Copy dependency files
 COPY go.mod go.sum Makefile ./
@@ -43,6 +47,22 @@ RUN go mod download
 EXPOSE 8080
 CMD ["air", "-c", ".air.toml"]
 
+FROM golang:1.23.4 as tester
+
+WORKDIR /app
+
+COPY --from=builder /app .
+
+# Download dependencies
+RUN go mod download
+# Verify API files exist
+RUN ls -la api/
+RUN go list -f '{{.GoFiles}}' github.com/wisp167/pvz/api
+
+# Default command (can be overridden in compose)
+CMD ["go", "test", "-v", "./tests/..."]
+
 # Test stage
-FROM builder as tester
-CMD ["go", "test", "-v", "./...", "-coverprofile=coverage.out"]
+#FROM builder as tester
+#COPY tests /app/tests
+#CMD ["go", "test", "-v", "./...", "-coverprofile=coverage.out"]

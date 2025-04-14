@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"crypto/md5"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -65,4 +66,12 @@ func ReadJSON(c echo.Context, dst any) error {
 	}
 
 	return nil
+}
+
+func Md5(data string) []byte {
+	return []byte(data)
+	h := md5.New()
+	h.Write([]byte(data))
+	return h.Sum(nil)
+	//return hex.EncodeToString(h.Sum(nil))
 }

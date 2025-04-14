@@ -22,8 +22,10 @@ services:
           # - .:/app/src   
       volumes:
         - .:/app
-        - /app/bin
-        - /app/tmp
+        - ./tests:/app/tests  
+        - ./api:/app/api
+          #- /app/bin
+          #- /app/tmp
         - ./sql:/app/sql
       depends_on:
         db:
@@ -61,8 +63,12 @@ services:
       context: .
       target: tester
     container_name: pvz-service-test
+    working_dir: /app
     env_file:
-      - .env
+      - ./tests/.env
+    volumes:
+      - .:/app
+      - ./tests:/app/tests
     environment:
       - DATABASE_PORT=${DATABASE_PORT}
       - DATABASE_USER=${DATABASE_USER}

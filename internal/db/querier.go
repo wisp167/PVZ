@@ -6,10 +6,19 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 type Querier interface {
-	GetUserByEmail(ctx context.Context, email string) (User, error)
+	AddProduct(ctx context.Context, arg AddProductParams) (AddProductRow, error)
+	CloseReception(ctx context.Context, pvzID uuid.UUID) (CloseReceptionRow, error)
+	CreateOrGetReception(ctx context.Context, pvzID uuid.UUID) (CreateOrGetReceptionRow, error)
+	CreatePVZ(ctx context.Context, city string) (CreatePVZRow, error)
+	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
+	DeleteLastProduct(ctx context.Context, pvzID uuid.UUID) (uuid.UUID, error)
+	GetPVZsWithReceptions(ctx context.Context, arg GetPVZsWithReceptionsParams) ([]GetPVZsWithReceptionsRow, error)
+	GetUserByCredentials(ctx context.Context, arg GetUserByCredentialsParams) (string, error)
 }
 
 var _ Querier = (*Queries)(nil)

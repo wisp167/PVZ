@@ -9,11 +9,11 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	_ "github.com/lib/pq"
+	"github.com/wisp167/pvz/api"
 )
 
 const (
-	RoleKey   = "role"
-	UserIDKey = "userID"
+	RoleKey = "role"
 )
 
 type JWTConfig struct {
@@ -38,28 +38,21 @@ func AuthWithConfig(config JWTConfig) echo.MiddlewareFunc {
 				return echo.NewHTTPError(http.StatusUnauthorized, "invalid token format")
 			}
 
-			token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-					return nil, echo.NewHTTPError(http.StatusUnauthorized, "unexpected signing method")
-				}
+			claims := &Claims{}
+			token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 				return config.SigningKey, nil
 			})
-
 			if err != nil || !token.Valid {
 				return echo.NewHTTPError(http.StatusUnauthorized, "invalid token")
 			}
 
-			claims, ok := token.Claims.(jwt.MapClaims)
-			if !ok {
+			if customClaims, ok := token.Claims.(*Claims); ok {
+				if customClaims.Role != "employee" && customClaims.Role != "moderator" {
+					return echo.NewHTTPError(http.StatusUnauthorized, "invalid role")
+				}
+				c.Set(RoleKey, customClaims.Role) // Now you can access the Role field
+			} else {
 				return echo.NewHTTPError(http.StatusUnauthorized, "invalid token claims")
-			}
-
-			// Store claims in context
-			if userID, ok := claims["userID"].(float64); ok {
-				c.Set(UserIDKey, int64(userID))
-			}
-			if role, ok := claims["role"].(string); ok {
-				c.Set(RoleKey, role)
 			}
 
 			return next(c)
@@ -72,16 +65,18 @@ func RoleRequired(requiredRole string) echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 
 			role, ok := c.Get(RoleKey).(string)
+
 			if !ok || role != requiredRole {
 				return echo.NewHTTPError(http.StatusForbidden, "Access denied")
 			}
+			c.Set(RoleKey, nil)
 			return next(c)
 		}
 	}
 }
 
 type Claims struct {
-	Role string
+	Role string `json:"role"`
 	jwt.StandardClaims
 }
 
@@ -89,7 +84,7 @@ type AuthResponse struct {
 	Token string `json:"token"`
 }
 
-func DummyLogin(role string, jwtkey []byte) (AuthResponse, error) {
+func DummyLogin(role string, jwtkey []byte) (api.Token, error) {
 	expirationTime := time.Now().Add(time.Hour)
 	claims := &Claims{
 		Role: role,
@@ -101,10 +96,10 @@ func DummyLogin(role string, jwtkey []byte) (AuthResponse, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(jwtkey)
 	if err != nil {
-		return AuthResponse{}, err
+		return api.Token(""), err
 	}
 
-	return AuthResponse{Token: tokenString}, nil
+	return api.Token(tokenString), nil
 }
 
 // JWT middleware for Echo

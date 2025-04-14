@@ -5,40 +5,42 @@
 package db
 
 import (
-	"github.com/jackc/pgx/v5/pgtype"
+	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 type Product struct {
-	ID          pgtype.UUID        `json:"id"`
-	DateTime    pgtype.Timestamptz `json:"date_time"`
-	Type        string             `json:"type"`
-	ReceptionID pgtype.UUID        `json:"reception_id"`
-	Sequence    int64              `json:"sequence"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	ID          uuid.UUID    `db:"id" json:"id"`
+	DateTime    sql.NullTime `db:"date_time" json:"date_time"`
+	Type        string       `db:"type" json:"type"`
+	ReceptionID uuid.UUID    `db:"reception_id" json:"reception_id"`
+	Sequence    int64        `db:"sequence" json:"sequence"`
+	CreatedAt   sql.NullTime `db:"created_at" json:"created_at"`
 }
 
 type Pvz struct {
-	ID               pgtype.UUID        `json:"id"`
-	RegistrationDate pgtype.Timestamptz `json:"registration_date"`
-	City             string             `json:"city"`
-	CreatedAt        pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	ID               uuid.UUID    `db:"id" json:"id"`
+	RegistrationDate sql.NullTime `db:"registration_date" json:"registration_date"`
+	City             string       `db:"city" json:"city"`
+	CreatedAt        sql.NullTime `db:"created_at" json:"created_at"`
+	UpdatedAt        sql.NullTime `db:"updated_at" json:"updated_at"`
 }
 
 type Reception struct {
-	ID        pgtype.UUID        `json:"id"`
-	DateTime  pgtype.Timestamptz `json:"date_time"`
-	PvzID     pgtype.UUID        `json:"pvz_id"`
-	Status    string             `json:"status"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID        uuid.UUID    `db:"id" json:"id"`
+	DateTime  sql.NullTime `db:"date_time" json:"date_time"`
+	PvzID     uuid.UUID    `db:"pvz_id" json:"pvz_id"`
+	Status    string       `db:"status" json:"status"`
+	CreatedAt sql.NullTime `db:"created_at" json:"created_at"`
+	UpdatedAt sql.NullTime `db:"updated_at" json:"updated_at"`
 }
 
 type User struct {
-	ID           pgtype.UUID        `json:"id"`
-	Email        string             `json:"email"`
-	PasswordHash string             `json:"password_hash"`
-	Role         string             `json:"role"`
-	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	ID           uuid.UUID    `db:"id" json:"id"`
+	Email        string       `db:"email" json:"email"`
+	PasswordHash string       `db:"password_hash" json:"password_hash"`
+	Role         string       `db:"role" json:"role"`
+	CreatedAt    sql.NullTime `db:"created_at" json:"created_at"`
+	UpdatedAt    sql.NullTime `db:"updated_at" json:"updated_at"`
 }

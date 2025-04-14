@@ -6,27 +6,153 @@ package db
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
+	"database/sql"
+	"fmt"
 )
 
 type DBTX interface {
-	Exec(context.Context, string, ...interface{}) (pgconn.CommandTag, error)
-	Query(context.Context, string, ...interface{}) (pgx.Rows, error)
-	QueryRow(context.Context, string, ...interface{}) pgx.Row
+	ExecContext(context.Context, string, ...interface{}) (sql.Result, error)
+	PrepareContext(context.Context, string) (*sql.Stmt, error)
+	QueryContext(context.Context, string, ...interface{}) (*sql.Rows, error)
+	QueryRowContext(context.Context, string, ...interface{}) *sql.Row
 }
 
 func New(db DBTX) *Queries {
 	return &Queries{db: db}
 }
 
-type Queries struct {
-	db DBTX
+func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
+	q := Queries{db: db}
+	var err error
+	if q.addProductStmt, err = db.PrepareContext(ctx, addProduct); err != nil {
+		return nil, fmt.Errorf("error preparing query AddProduct: %w", err)
+	}
+	if q.closeReceptionStmt, err = db.PrepareContext(ctx, closeReception); err != nil {
+		return nil, fmt.Errorf("error preparing query CloseReception: %w", err)
+	}
+	if q.createOrGetReceptionStmt, err = db.PrepareContext(ctx, createOrGetReception); err != nil {
+		return nil, fmt.Errorf("error preparing query CreateOrGetReception: %w", err)
+	}
+	if q.createPVZStmt, err = db.PrepareContext(ctx, createPVZ); err != nil {
+		return nil, fmt.Errorf("error preparing query CreatePVZ: %w", err)
+	}
+	if q.createUserStmt, err = db.PrepareContext(ctx, createUser); err != nil {
+		return nil, fmt.Errorf("error preparing query CreateUser: %w", err)
+	}
+	if q.deleteLastProductStmt, err = db.PrepareContext(ctx, deleteLastProduct); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteLastProduct: %w", err)
+	}
+	if q.getPVZsWithReceptionsStmt, err = db.PrepareContext(ctx, getPVZsWithReceptions); err != nil {
+		return nil, fmt.Errorf("error preparing query GetPVZsWithReceptions: %w", err)
+	}
+	if q.getUserByCredentialsStmt, err = db.PrepareContext(ctx, getUserByCredentials); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUserByCredentials: %w", err)
+	}
+	return &q, nil
 }
 
-func (q *Queries) WithTx(tx pgx.Tx) *Queries {
+func (q *Queries) Close() error {
+	var err error
+	if q.addProductStmt != nil {
+		if cerr := q.addProductStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing addProductStmt: %w", cerr)
+		}
+	}
+	if q.closeReceptionStmt != nil {
+		if cerr := q.closeReceptionStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing closeReceptionStmt: %w", cerr)
+		}
+	}
+	if q.createOrGetReceptionStmt != nil {
+		if cerr := q.createOrGetReceptionStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createOrGetReceptionStmt: %w", cerr)
+		}
+	}
+	if q.createPVZStmt != nil {
+		if cerr := q.createPVZStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createPVZStmt: %w", cerr)
+		}
+	}
+	if q.createUserStmt != nil {
+		if cerr := q.createUserStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing createUserStmt: %w", cerr)
+		}
+	}
+	if q.deleteLastProductStmt != nil {
+		if cerr := q.deleteLastProductStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteLastProductStmt: %w", cerr)
+		}
+	}
+	if q.getPVZsWithReceptionsStmt != nil {
+		if cerr := q.getPVZsWithReceptionsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getPVZsWithReceptionsStmt: %w", cerr)
+		}
+	}
+	if q.getUserByCredentialsStmt != nil {
+		if cerr := q.getUserByCredentialsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUserByCredentialsStmt: %w", cerr)
+		}
+	}
+	return err
+}
+
+func (q *Queries) exec(ctx context.Context, stmt *sql.Stmt, query string, args ...interface{}) (sql.Result, error) {
+	switch {
+	case stmt != nil && q.tx != nil:
+		return q.tx.StmtContext(ctx, stmt).ExecContext(ctx, args...)
+	case stmt != nil:
+		return stmt.ExecContext(ctx, args...)
+	default:
+		return q.db.ExecContext(ctx, query, args...)
+	}
+}
+
+func (q *Queries) query(ctx context.Context, stmt *sql.Stmt, query string, args ...interface{}) (*sql.Rows, error) {
+	switch {
+	case stmt != nil && q.tx != nil:
+		return q.tx.StmtContext(ctx, stmt).QueryContext(ctx, args...)
+	case stmt != nil:
+		return stmt.QueryContext(ctx, args...)
+	default:
+		return q.db.QueryContext(ctx, query, args...)
+	}
+}
+
+func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, args ...interface{}) *sql.Row {
+	switch {
+	case stmt != nil && q.tx != nil:
+		return q.tx.StmtContext(ctx, stmt).QueryRowContext(ctx, args...)
+	case stmt != nil:
+		return stmt.QueryRowContext(ctx, args...)
+	default:
+		return q.db.QueryRowContext(ctx, query, args...)
+	}
+}
+
+type Queries struct {
+	db                        DBTX
+	tx                        *sql.Tx
+	addProductStmt            *sql.Stmt
+	closeReceptionStmt        *sql.Stmt
+	createOrGetReceptionStmt  *sql.Stmt
+	createPVZStmt             *sql.Stmt
+	createUserStmt            *sql.Stmt
+	deleteLastProductStmt     *sql.Stmt
+	getPVZsWithReceptionsStmt *sql.Stmt
+	getUserByCredentialsStmt  *sql.Stmt
+}
+
+func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
-		db: tx,
+		db:                        tx,
+		tx:                        tx,
+		addProductStmt:            q.addProductStmt,
+		closeReceptionStmt:        q.closeReceptionStmt,
+		createOrGetReceptionStmt:  q.createOrGetReceptionStmt,
+		createPVZStmt:             q.createPVZStmt,
+		createUserStmt:            q.createUserStmt,
+		deleteLastProductStmt:     q.deleteLastProductStmt,
+		getPVZsWithReceptionsStmt: q.getPVZsWithReceptionsStmt,
+		getUserByCredentialsStmt:  q.getUserByCredentialsStmt,
 	}
 }

@@ -40,7 +40,7 @@ type config struct {
 type Application struct {
 	config  config
 	logger  *log.Logger
-	model   data.Models
+	model   *data.Models
 	queue   chan struct{}
 	jwtkey  []byte
 	server  *echo.Echo
@@ -98,10 +98,15 @@ func SetupApplication() (*Application, error) {
 		return nil, fmt.Errorf("failed to open database: %v", err)
 	}
 
+	model, err := data.NewModels(db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %v", err)
+	}
+
 	app := &Application{
 		config: cfg,
 		logger: logger,
-		model:  data.NewModels(db),
+		model:  &model,
 		jwtkey: []byte(jwtkey),
 		queue:  make(chan struct{}, cfg.numWorkers),
 	}
@@ -121,8 +126,8 @@ func (app *Application) RegisterHandler(e *echo.Echo, handler *handlers.ServerHa
 
 	authMiddleware := handlers.AuthWithConfig(JWTConfig_)
 
-	authGroup := e.Group("")
-	authGroup.Use(authMiddleware)
+	//authGroup := e.Group("")
+	e.Use(authMiddleware)
 
 	handlers.RegisterHandlersMiddleware(e, handler)
 
@@ -149,7 +154,7 @@ func (app *Application) Start() error {
 	app.server = e
 	app.handler = handler
 
-	app.logger.Printf("starting %s server on %s", app.config.env, app.config.port)
+	app.logger.Printf("starting %s server on %d", app.config.env, app.config.port)
 
 	address := fmt.Sprintf(":%d", app.config.port)
 	go func() {
