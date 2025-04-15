@@ -3,9 +3,11 @@ package server
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -157,13 +159,21 @@ func (app *Application) Start() error {
 	app.logger.Printf("starting %s server on %d", app.config.env, app.config.port)
 
 	address := fmt.Sprintf(":%d", app.config.port)
+	serverErr := make(chan error, 1)
 	go func() {
-		if err := e.Start(address); err != nil {
+		if err := e.Start(address); err != nil && err != http.ErrServerClosed {
+			serverErr <- err
 			app.logger.Fatalf("listen: %s\n", err)
 		}
 	}()
 
-	return nil
+	select {
+	case err := <-serverErr:
+		return err
+	case <-time.After(100 * time.Millisecond):
+		app.server = e
+		return nil
+	}
 }
 
 func (app *Application) Stop() error {
@@ -175,11 +185,18 @@ func (app *Application) Stop() error {
 	defer cancel()
 
 	if err := app.server.Shutdown(ctx); err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			app.logger.Println("graceful shutdown timed out, forcing close")
+			if closeErr := app.server.Close(); closeErr != nil {
+				return fmt.Errorf("forced close error: %v (original error: %v)", closeErr, err)
+			}
+		}
 		return fmt.Errorf("server shutdown failed: %v", err)
 	}
 
-	app.logger.Println("server stopped")
+	app.logger.Println("server stopped gracefully")
 	return nil
+
 }
 
 func OpenDB(cfg config) (*sql.DB, error) {

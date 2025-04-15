@@ -43,7 +43,6 @@ func TestDummyLogin(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, tt.wantStatus, resp.StatusCode())
 
-			// Only check response body for successful requests
 			if tt.wantStatus == http.StatusOK {
 				assert.NotNil(t, resp.JSON200)
 				assert.NotEmpty(t, *resp.JSON200)
@@ -61,7 +60,6 @@ func TestRegisterAndLogin(t *testing.T) {
 	password := GenerateRandomStringSample(10)
 	role := "employee"
 
-	// Test registration
 	registerResp, err := client.PostRegisterWithResponse(context.Background(), api.PostRegisterJSONRequestBody{
 		Email:    email,
 		Password: password,
@@ -70,7 +68,6 @@ func TestRegisterAndLogin(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, registerResp.StatusCode())
 
-	// Test login with correct credentials
 	loginResp, err := client.PostLoginWithResponse(context.Background(), api.PostLoginJSONRequestBody{
 		Email:    email,
 		Password: password,
@@ -78,7 +75,6 @@ func TestRegisterAndLogin(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, loginResp.StatusCode())
 
-	// Test login with incorrect password
 	invalidLoginResp, err := client.PostLoginWithResponse(context.Background(), api.PostLoginJSONRequestBody{
 		Email:    email,
 		Password: "wrong",

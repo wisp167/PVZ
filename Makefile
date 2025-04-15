@@ -38,18 +38,11 @@ $(SPEC_FILE): $(SWAGGER_FILE)
 #	@echo "Generating sqlc code..."
 #	@sqlc generate
 
-fmt: ## Format generated code
+fmt: 
 	@echo "Formatting generated files..."
 	@$(GOIMPORTS) -w $(GEN_DIR)/*.gen.go
 
-clean: ## Remove all generated files
+clean: 
 	@echo "Cleaning generated files..."
 	@rm -f $(GEN_DIR)/*.gen.go
 
-lint: ## Lint the generated code (add your linter commands here)
-	@echo "Linting code..."
-	@golangci-lint run
-
-test: ## Run tests
-	@echo "Running tests..."
-	@go test ./...

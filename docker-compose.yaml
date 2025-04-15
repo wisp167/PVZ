@@ -80,7 +80,8 @@ services:
         condition: service_healthy
     networks:
       - internal
-    command: go test -v ./tests -count=1 -coverpkg=./... -coverprofile=coverage.out
+    command: go test -v ./tests -count=1 -coverpkg=./internal/server,./internal/data,./internal/helpers,./internal/handlers,./tests -coverprofile=coverage.out
+
 
 networks:
   internal:

@@ -21,6 +21,12 @@ SELECT
 FROM existing_reception er
 JOIN receptions r ON er.id = r.id;
 
+-- name: HasOpenReceptions :one
+SELECT EXISTS (
+    SELECT 1 FROM receptions 
+    WHERE status = 'in_progress' AND pvz_id = $1
+) AS has_open_receptions;
+
 -- name: CloseReception :one
 WITH reception_to_close AS (
     SELECT id, date_time, pvz_id, status 

@@ -19,6 +19,7 @@ type Querier interface {
 	DeleteLastProduct(ctx context.Context, pvzID uuid.UUID) (uuid.UUID, error)
 	GetPVZsWithReceptions(ctx context.Context, arg GetPVZsWithReceptionsParams) ([]GetPVZsWithReceptionsRow, error)
 	GetUserByCredentials(ctx context.Context, arg GetUserByCredentialsParams) (string, error)
+	HasOpenReceptions(ctx context.Context, pvzID uuid.UUID) (bool, error)
 }
 
 var _ Querier = (*Queries)(nil)

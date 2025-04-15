@@ -84,6 +84,10 @@ func (m *Models) AddReception(reqCtx context.Context, req api.PostReceptionsJSON
 
 	err := m.Transaction(reqCtx, func(q *db.Queries) error {
 		var err error
+		check, err := q.HasOpenReceptions(reqCtx, uuid.UUID(req.PvzId))
+		if check == true || err != nil {
+			return errors.New("pvz has open receptions")
+		}
 		reception, err = q.CreateOrGetReception(reqCtx, uuid.UUID(req.PvzId))
 		return err
 	})

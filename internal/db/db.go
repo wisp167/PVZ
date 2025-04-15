@@ -48,6 +48,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getUserByCredentialsStmt, err = db.PrepareContext(ctx, getUserByCredentials); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUserByCredentials: %w", err)
 	}
+	if q.hasOpenReceptionsStmt, err = db.PrepareContext(ctx, hasOpenReceptions); err != nil {
+		return nil, fmt.Errorf("error preparing query HasOpenReceptions: %w", err)
+	}
 	return &q, nil
 }
 
@@ -91,6 +94,11 @@ func (q *Queries) Close() error {
 	if q.getUserByCredentialsStmt != nil {
 		if cerr := q.getUserByCredentialsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getUserByCredentialsStmt: %w", cerr)
+		}
+	}
+	if q.hasOpenReceptionsStmt != nil {
+		if cerr := q.hasOpenReceptionsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing hasOpenReceptionsStmt: %w", cerr)
 		}
 	}
 	return err
@@ -140,6 +148,7 @@ type Queries struct {
 	deleteLastProductStmt     *sql.Stmt
 	getPVZsWithReceptionsStmt *sql.Stmt
 	getUserByCredentialsStmt  *sql.Stmt
+	hasOpenReceptionsStmt     *sql.Stmt
 }
 
 func (q *Queries) WithTx(tx *sql.Tx) *Queries {
@@ -154,5 +163,6 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		deleteLastProductStmt:     q.deleteLastProductStmt,
 		getPVZsWithReceptionsStmt: q.getPVZsWithReceptionsStmt,
 		getUserByCredentialsStmt:  q.getUserByCredentialsStmt,
+		hasOpenReceptionsStmt:     q.hasOpenReceptionsStmt,
 	}
 }

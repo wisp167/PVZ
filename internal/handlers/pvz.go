@@ -102,7 +102,7 @@ func (h *ServerHandler) PostProducts(ctx echo.Context) error {
 	}
 	if err != nil {
 		h.logError(err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to register product")
+		return echo.NewHTTPError(http.StatusBadRequest, "Failed to register product")
 	}
 	return ctx.JSON(http.StatusCreated, TransformAddProductRowToProduct(product))
 }
@@ -128,6 +128,10 @@ func (h *ServerHandler) PostPvz(ctx echo.Context) error {
 	var req api.PVZ
 	if err := helpers.ReadJSON(ctx, &req); err != nil {
 		h.logError(err)
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request format")
+	}
+
+	if req.City != "Москва" && req.City != "Санкт-Петербург" && req.City != "Казань" {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request format")
 	}
 
@@ -167,7 +171,7 @@ func (h *ServerHandler) PostPvzPvzIdDeleteLastProduct(ctx echo.Context, pvzId op
 	err := h.Model.DeleteLastProduct(reqCtx, pvzId)
 	if err != nil {
 		h.logError(err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to register user")
+		return echo.NewHTTPError(http.StatusBadRequest, "Failed to delete product")
 	}
 	return ctx.JSON(http.StatusOK, nil)
 }
@@ -186,9 +190,9 @@ func (h *ServerHandler) PostReceptions(ctx echo.Context) error {
 	recep, err := h.Model.AddReception(reqCtx, req)
 	if err != nil {
 		h.logError(err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to register user")
+		return echo.NewHTTPError(http.StatusBadRequest, "Failed to register reception")
 	}
-	return ctx.JSON(http.StatusOK, ConvertReceptionRowToAPI(recep))
+	return ctx.JSON(http.StatusCreated, ConvertReceptionRowToAPI(recep))
 }
 
 // Регистрация пользователя

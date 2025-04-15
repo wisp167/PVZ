@@ -2,6 +2,7 @@
 package tests
 
 import (
+	"bytes"
 	"context"
 	"math/rand"
 	"net/http"
@@ -48,6 +49,22 @@ func Generate_Username_Password(i int) (string, string) {
 	username := prefix + "_" + strconv.Itoa(i)
 	password := prefix
 	return username, password
+}
+func makeRequest(t *testing.T, method, url, token string, body []byte) *http.Response {
+	req, err := http.NewRequest(method, url, bytes.NewBuffer(body))
+	assert.NoError(t, err, "Failed to create request")
+
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	if method == "POST" || method == "PUT" {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	assert.NoError(t, err, "Request failed")
+	return resp
 }
 
 // Helper function to authenticate and get a token

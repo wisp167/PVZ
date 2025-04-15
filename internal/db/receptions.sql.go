@@ -97,3 +97,17 @@ func (q *Queries) CreateOrGetReception(ctx context.Context, pvzID uuid.UUID) (Cr
 	)
 	return i, err
 }
+
+const hasOpenReceptions = `-- name: HasOpenReceptions :one
+SELECT EXISTS (
+    SELECT 1 FROM receptions 
+    WHERE status = 'in_progress' AND pvz_id = $1
+) AS has_open_receptions
+`
+
+func (q *Queries) HasOpenReceptions(ctx context.Context, pvzID uuid.UUID) (bool, error) {
+	row := q.queryRow(ctx, q.hasOpenReceptionsStmt, hasOpenReceptions, pvzID)
+	var has_open_receptions bool
+	err := row.Scan(&has_open_receptions)
+	return has_open_receptions, err
+}

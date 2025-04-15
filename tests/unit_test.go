@@ -41,5 +41,6 @@ func TestMain(m *testing.M) {
 
 	code := m.Run()
 	teardown(app)
+	time.Sleep(1 * time.Second)
 	os.Exit(code)
 }
